@@ -1,0 +1,293 @@
+{
+  "scenario": "BACKPRESSURE_TEST",
+  "description": "Load testing scenario demonstrating backpressure mechanisms under sustained high throughput",
+  "timestamp": "2026-05-03T17:00:00Z",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Baseline Load (100 req/s)",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P3",
+          "message": "Baseline throughput: 100 req/s, queue depth 0/500, latency p99 245ms",
+          "timestamp": 1714762200
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P3",
+          "message": "Queue health: 0 items pending, processing rate 100 signals/sec",
+          "timestamp": 1714762201
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P3",
+          "message": "Connection pool: 8/20 in use, 0 timeouts, 0 rejections",
+          "timestamp": 1714762202
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Load Ramp Up (100 → 1000 req/s)",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Throughput increasing: 100 req/s → 500 req/s, queue depth 50/500",
+          "timestamp": 1714762205
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Throughput increasing: 500 req/s → 1000 req/s, queue depth 150/500",
+          "timestamp": 1714762207
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P2",
+          "message": "Connection pool saturating: 18/20 in use, 5 requests waiting",
+          "timestamp": 1714762209
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P2",
+          "message": "Queue depth building: 150 items, processing rate 1000 signals/sec",
+          "timestamp": 1714762210
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Peak Load (1000 req/s) - Backpressure Engagement",
+      "duration_seconds": 6,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P1",
+          "message": "Peak throughput reached: 1000 req/s, latency p99 3500ms",
+          "timestamp": 1714762216
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P1",
+          "message": "Queue saturation warning: 380/500 items, queue depth increasing",
+          "timestamp": 1714762217
+        },
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P1",
+          "message": "Backpressure ENGAGED: Detecting queue depth >75% (380/500)",
+          "timestamp": 1714762218
+        },
+        {
+          "component_id": "rate-limiter",
+          "severity": "P1",
+          "message": "Rate limiting activated: 1000 req/s → 800 req/s (20% reduction)",
+          "timestamp": 1714762219
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P2",
+          "message": "Queue shedding enabled: dropping lowest-priority signals",
+          "timestamp": 1714762220
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Non-critical requests getting 503 Service Unavailable (2% error rate)",
+          "timestamp": 1714762221
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Sustained High Load (800 req/s) - Under Backpressure",
+      "duration_seconds": 8,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Sustained throughput: 800 req/s under backpressure, queue stable at 420/500",
+          "timestamp": 1714762229
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P2",
+          "message": "Queue processing rate: 800 signals/sec (matching input rate)",
+          "timestamp": 1714762231
+        },
+        {
+          "component_id": "rate-limiter",
+          "severity": "P3",
+          "message": "Rejection rate: 2% of incoming requests (dropped P3 signals)",
+          "timestamp": 1714762233
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P2",
+          "message": "Connection pool: 20/20 in use, 8 requests waiting for available connection",
+          "timestamp": 1714762235
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Further Load Increase (800 → 1200 req/s) - Backpressure Tightens",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "signal-queue",
+          "severity": "P1",
+          "message": "Queue depth critical: 480/500 items (96% full)",
+          "timestamp": 1714762239
+        },
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P1",
+          "message": "Increasing backpressure: incoming rate limited to 500 req/s (58% reduction)",
+          "timestamp": 1714762240
+        },
+        {
+          "component_id": "rate-limiter",
+          "severity": "P1",
+          "message": "Aggressive rejection policy: 8% of requests rejected to prevent overflow",
+          "timestamp": 1714762241
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Error rate: 8% (503 Service Unavailable + backpressure rejections)",
+          "timestamp": 1714762242
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Load Reduction (1200 → 600 req/s) - Recovery Begins",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "Load reducing: 1000 req/s → 600 req/s",
+          "timestamp": 1714762247
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P2",
+          "message": "Queue draining: 480/500 → 320/500 items",
+          "timestamp": 1714762249
+        },
+        {
+          "component_id": "rate-limiter",
+          "severity": "P3",
+          "message": "Backpressure easing: rejection rate decreased to 2%",
+          "timestamp": 1714762251
+        }
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "Return to Baseline (600 → 100 req/s) - Backpressure Disengaged",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "signal-queue",
+          "severity": "P3",
+          "message": "Queue health recovered: 30/500 items pending",
+          "timestamp": 1714762256
+        },
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P3",
+          "message": "Backpressure DISENGAGED: queue depth <10%, normal operations resumed",
+          "timestamp": 1714762258
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P3",
+          "message": "Throughput normalized: 100 req/s, latency p99 250ms, error rate 0%",
+          "timestamp": 1714762260
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P3",
+          "message": "Connection pool idle: 8/20 in use",
+          "timestamp": 1714762261
+        }
+      ]
+    }
+  ],
+  "load_patterns": [
+    {
+      "time_offset_seconds": 0,
+      "duration_seconds": 5,
+      "throughput": "100 req/s",
+      "status": "baseline"
+    },
+    {
+      "time_offset_seconds": 5,
+      "duration_seconds": 5,
+      "throughput": "100-1000 req/s",
+      "status": "ramp_up"
+    },
+    {
+      "time_offset_seconds": 10,
+      "duration_seconds": 6,
+      "throughput": "1000 req/s",
+      "status": "peak_backpressure_engaged"
+    },
+    {
+      "time_offset_seconds": 16,
+      "duration_seconds": 8,
+      "throughput": "800 req/s",
+      "status": "sustained_under_backpressure"
+    },
+    {
+      "time_offset_seconds": 24,
+      "duration_seconds": 4,
+      "throughput": "1000-1200 req/s",
+      "status": "further_increase_backpressure_tightens"
+    },
+    {
+      "time_offset_seconds": 28,
+      "duration_seconds": 5,
+      "throughput": "1200-600 req/s",
+      "status": "recovery_begins"
+    },
+    {
+      "time_offset_seconds": 33,
+      "duration_seconds": 5,
+      "throughput": "600-100 req/s",
+      "status": "return_to_baseline"
+    }
+  ],
+  "metadata": {
+    "total_signals": 28,
+    "total_test_duration_seconds": 38,
+    "peak_throughput": "1200 req/s",
+    "baseline_throughput": "100 req/s",
+    "max_queue_depth": "480/500 (96%)",
+    "max_backpressure_reduction": "58% (1200 → 500 req/s)",
+    "peak_error_rate": "8%",
+    "peak_latency_p99_ms": 3500,
+    "baseline_latency_p99_ms": 250,
+    "rejection_policy": "Priority-based (drop P3 first)",
+    "backpressure_mechanisms": [
+      "rate limiting",
+      "queue shedding",
+      "circuit breaking",
+      "priority queue management"
+    ],
+    "results": {
+      "system_stability": "✓ Maintained despite 12x load spike",
+      "queue_overflow_prevented": "✓ Never exceeded 500-item limit",
+      "recovery_time": "10 seconds",
+      "data_consistency": "✓ No signals lost, only shed per policy",
+      "performance_degradation": "✓ Graceful under load"
+    }
+  }
+}

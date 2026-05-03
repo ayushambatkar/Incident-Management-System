@@ -1,0 +1,196 @@
+{
+  "scenario": "RDBMS_OUTAGE",
+  "description": "PostgreSQL outage followed by cascading failures and recovery",
+  "timestamp": "2026-05-03T14:30:00Z",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Pre-Outage Baseline",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "postgres-primary",
+          "severity": "P3",
+          "message": "Database health check: all connections normal (18/20 in use)",
+          "timestamp": 1714755000
+        },
+        {
+          "component_id": "postgres-primary",
+          "severity": "P3",
+          "message": "Replication lag: 0ms, WAL position synchronized",
+          "timestamp": 1714755001
+        },
+        {
+          "component_id": "postgres-replica",
+          "severity": "P3",
+          "message": "Standby replica operational, accepting read traffic",
+          "timestamp": 1714755002
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Outage Begins - Connection Failures",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "postgres-primary",
+          "severity": "P0",
+          "message": "CRITICAL: Connection refused - unable to connect to primary database",
+          "timestamp": 1714755005
+        },
+        {
+          "component_id": "connection-pool",
+          "severity": "P0",
+          "message": "Database connection pool exhausted: 0/20 available connections",
+          "timestamp": 1714755005
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P1",
+          "message": "Database query timeout - request blocked after 5000ms",
+          "timestamp": 1714755006
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Cascading Failures - Queue Saturation",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "incident-processor",
+          "severity": "P1",
+          "message": "Unable to persist incidents: database unavailable, buffering in Redis",
+          "timestamp": 1714755009
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P1",
+          "message": "Queue depth: 450/500 items - processing halted",
+          "timestamp": 1714755009
+        },
+        {
+          "component_id": "memory-cache",
+          "severity": "P2",
+          "message": "In-memory buffer usage: 68% of heap - storing 2.3GB of pending incidents",
+          "timestamp": 1714755010
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P1",
+          "message": "Request timeout rate: 45% of incoming requests timing out",
+          "timestamp": 1714755011
+        },
+        {
+          "component_id": "mcp-handler",
+          "severity": "P0",
+          "message": "Unable to persist RCA data - MCP writes failing due to DB unavailability",
+          "timestamp": 1714755012
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Sustained Outage - High Backpressure",
+      "duration_seconds": 5,
+      "signals": [
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P1",
+          "message": "Engaging backpressure: incoming rate limited from 5000 req/s to 500 req/s",
+          "timestamp": 1714755017
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P1",
+          "message": "Queue shedding enabled: dropping P3 signals to prevent overflow",
+          "timestamp": 1714755018
+        },
+        {
+          "component_id": "memory-cache",
+          "severity": "P2",
+          "message": "In-memory buffer usage: 85% of heap",
+          "timestamp": 1714755019
+        },
+        {
+          "component_id": "worker-process",
+          "severity": "P2",
+          "message": "Worker restart initiated to clear memory backlog",
+          "timestamp": 1714755021
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Database Recovery Begins",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "postgres-primary",
+          "severity": "P2",
+          "message": "Database responding to connection attempts (12/20 connections recovering)",
+          "timestamp": 1714755024
+        },
+        {
+          "component_id": "connection-pool",
+          "severity": "P2",
+          "message": "Connection pool recovering: 8/20 connections available",
+          "timestamp": 1714755025
+        },
+        {
+          "component_id": "incident-processor",
+          "severity": "P2",
+          "message": "Flushing buffered incidents to persistent storage (2,847 incidents queued)",
+          "timestamp": 1714755026
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Full Recovery",
+      "duration_seconds": 2,
+      "signals": [
+        {
+          "component_id": "postgres-primary",
+          "severity": "P3",
+          "message": "Database fully recovered - all connections normal (20/20 in use)",
+          "timestamp": 1714755028
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P3",
+          "message": "Queue processing complete: 0 items pending, normal rate restored",
+          "timestamp": 1714755029
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P3",
+          "message": "API response time normalized: p99 latency 245ms",
+          "timestamp": 1714755029
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "total_signals": 23,
+    "outage_duration_seconds": 22,
+    "total_recovery_time_seconds": 5,
+    "mttr": 27,
+    "components_affected": [
+      "postgres-primary",
+      "postgres-replica",
+      "connection-pool",
+      "api-server",
+      "incident-processor",
+      "signal-queue",
+      "memory-cache",
+      "mcp-handler",
+      "backpressure-controller",
+      "worker-process"
+    ],
+    "backpressure_test": true,
+    "queue_saturation_peak": "450/500 items",
+    "memory_peak_usage": "85% of heap"
+  }
+}

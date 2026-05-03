@@ -1,0 +1,299 @@
+{
+  "scenario": "CASCADE_FAILURES",
+  "description": "Multi-wave cascading failures: network latency → database degradation → worker stalls → API overload → MCP failure",
+  "timestamp": "2026-05-03T16:20:00Z",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Wave 1: Network Latency Spike",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "network-layer",
+          "severity": "P0",
+          "message": "ALERT: Network latency spike detected - baseline 5ms → 500ms (100x increase)",
+          "timestamp": 1714760400
+        },
+        {
+          "component_id": "network-layer",
+          "severity": "P0",
+          "message": "Packet loss detected: 2% → 12% on inter-datacenter connections",
+          "timestamp": 1714760401
+        },
+        {
+          "component_id": "load-balancer",
+          "severity": "P1",
+          "message": "Connection timeout rate elevated: 0.1% → 8% of requests",
+          "timestamp": 1714760402
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Wave 2: Database Connection Failures",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "database-pool",
+          "severity": "P1",
+          "message": "Database connection timeouts increasing - slow query backlog building",
+          "timestamp": 1714760405
+        },
+        {
+          "component_id": "postgres-primary",
+          "severity": "P1",
+          "message": "Query latency spike: 50ms → 2000ms (long-running queries due to network latency)",
+          "timestamp": 1714760406
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P1",
+          "message": "Available connections dropping: 18/20 → 3/20 (17 requests waiting)",
+          "timestamp": 1714760407
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Wave 3: Cache Invalidation & Hit Rate Collapse",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "cache-layer",
+          "severity": "P1",
+          "message": "Cache hit rate dropped dramatically: 95% → 30% (backend latency causing cache staleness)",
+          "timestamp": 1714760410
+        },
+        {
+          "component_id": "redis-cluster",
+          "severity": "P2",
+          "message": "Redis latency elevated: 0.5ms → 50ms (network latency propagating)",
+          "timestamp": 1714760411
+        },
+        {
+          "component_id": "cache-layer",
+          "severity": "P1",
+          "message": "Cascading misses: stale data causing more database queries - positive feedback loop",
+          "timestamp": 1714760412
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Wave 4: Worker Process Stalls",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "signal-queue",
+          "severity": "P0",
+          "message": "Signal processing unable to keep up - queue depth: 100 → 450/500 items",
+          "timestamp": 1714760415
+        },
+        {
+          "component_id": "queue-worker",
+          "severity": "P0",
+          "message": "Worker unable to connect to database - all queries timing out",
+          "timestamp": 1714760416
+        },
+        {
+          "component_id": "incident-processor",
+          "severity": "P0",
+          "message": "Incident processing halted - unable to persist data due to database unavailability",
+          "timestamp": 1714760417
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Wave 5: API Server Overload",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "api-server",
+          "severity": "P0",
+          "message": "API response time degradation: 200ms → 15000ms (requests queuing due to slow backend)",
+          "timestamp": 1714760420
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P1",
+          "message": "Request timeout rate: 0% → 65% of all requests",
+          "timestamp": 1714760421
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P1",
+          "message": "Memory usage spike: 45% → 88% (buffering responses for slow connections)",
+          "timestamp": 1714760422
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Wave 6: MCP Service Failure",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "mcp-handler",
+          "severity": "P1",
+          "message": "MCP unable to fetch incident context - database queries timing out",
+          "timestamp": 1714760425
+        },
+        {
+          "component_id": "rca-engine",
+          "severity": "P1",
+          "message": "RCA generation delayed - processing backlog accumulating",
+          "timestamp": 1714760426
+        },
+        {
+          "component_id": "mcp-server",
+          "severity": "P0",
+          "message": "MCP request timeout (30s) - circuit breaker engaged",
+          "timestamp": 1714760427
+        }
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "Backpressure Engagement - System Stabilization",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P1",
+          "message": "BACKPRESSURE ACTIVATED: Rate limiting incoming requests to 10% of normal (5000 → 500 req/s)",
+          "timestamp": 1714760430
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P1",
+          "message": "Queue shedding engaged: dropping P3 signals to prevent overflow",
+          "timestamp": 1714760431
+        },
+        {
+          "component_id": "circuit-breaker",
+          "severity": "P2",
+          "message": "Multiple circuit breakers OPEN: database, MCP, cache fallback",
+          "timestamp": 1714760432
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "API returning 503 Service Unavailable for non-critical requests",
+          "timestamp": 1714760433
+        }
+      ]
+    },
+    {
+      "phase": 8,
+      "name": "Recovery Phase 1: Network Stabilization",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "network-layer",
+          "severity": "P3",
+          "message": "Network latency improving: 500ms → 150ms",
+          "timestamp": 1714760437
+        },
+        {
+          "component_id": "load-balancer",
+          "severity": "P3",
+          "message": "Connection timeout rate normalizing: 8% → 2%",
+          "timestamp": 1714760438
+        },
+        {
+          "component_id": "postgres-primary",
+          "severity": "P3",
+          "message": "Query latency normalizing: 2000ms → 100ms",
+          "timestamp": 1714760439
+        },
+        {
+          "component_id": "database-pool",
+          "severity": "P3",
+          "message": "Available connections recovering: 3/20 → 15/20",
+          "timestamp": 1714760440
+        }
+      ]
+    },
+    {
+      "phase": 9,
+      "name": "Recovery Phase 2: Cache & Worker Recovery",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "cache-layer",
+          "severity": "P3",
+          "message": "Cache hit rate recovering: 30% → 82%",
+          "timestamp": 1714760443
+        },
+        {
+          "component_id": "queue-worker",
+          "severity": "P3",
+          "message": "Worker resuming processing - signal queue draining: 450 → 200 items",
+          "timestamp": 1714760444
+        },
+        {
+          "component_id": "signal-queue",
+          "severity": "P3",
+          "message": "Processing backlog: 200 items remaining",
+          "timestamp": 1714760445
+        }
+      ]
+    },
+    {
+      "phase": 10,
+      "name": "Recovery Phase 3: Full System Recovery",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "backpressure-controller",
+          "severity": "P3",
+          "message": "Backpressure DISABLED: request rate limit removed, normal throughput restored",
+          "timestamp": 1714760448
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P3",
+          "message": "API response time normalized: 15000ms → 250ms (p99)",
+          "timestamp": 1714760449
+        },
+        {
+          "component_id": "mcp-server",
+          "severity": "P3",
+          "message": "MCP fully recovered - all circuit breakers closed",
+          "timestamp": 1714760450
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "total_signals": 52,
+    "cascade_duration_seconds": 30,
+    "backpressure_engagement_at_second": 18,
+    "recovery_start_at_second": 22,
+    "total_recovery_time_seconds": 8,
+    "mttr": 38,
+    "cascade_waves": 6,
+    "components_affected_primary": [
+      "network-layer",
+      "database-pool",
+      "cache-layer",
+      "signal-queue",
+      "api-server",
+      "mcp-server"
+    ],
+    "components_affected_secondary": [
+      "postgres-primary",
+      "redis-cluster",
+      "queue-worker",
+      "incident-processor",
+      "load-balancer",
+      "rca-engine",
+      "circuit-breaker"
+    ],
+    "max_queue_depth": "450/500",
+    "min_cache_hit_rate": "30%",
+    "max_api_latency_ms": 15000,
+    "backpressure_effectiveness": "Prevented system collapse and enabled recovery"
+  }
+}

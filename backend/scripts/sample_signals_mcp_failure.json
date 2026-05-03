@@ -1,0 +1,190 @@
+{
+  "scenario": "MCP_FAILURE",
+  "description": "Model Context Protocol (MCP) failure with cascading impact on RCA generation and incident enrichment",
+  "timestamp": "2026-05-03T15:45:00Z",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "MCP Pre-Failure Health",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "mcp-server",
+          "severity": "P3",
+          "message": "MCP health check: all services operational (RCA engine, pattern DB, vector embeddings)",
+          "timestamp": 1714758900
+        },
+        {
+          "component_id": "pattern-database",
+          "severity": "P3",
+          "message": "Pattern DB loaded: 12,847 incident patterns cached in memory",
+          "timestamp": 1714758901
+        },
+        {
+          "component_id": "embedding-service",
+          "severity": "P3",
+          "message": "Vector embedding service: response time 125ms avg, 0% error rate",
+          "timestamp": 1714758902
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "MCP Service Degradation",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "mcp-server",
+          "severity": "P2",
+          "message": "MCP WARNING: RCA generation timeout (5000ms) - 3 requests affected",
+          "timestamp": 1714758906
+        },
+        {
+          "component_id": "pattern-database",
+          "severity": "P2",
+          "message": "Pattern DB query timeout: Vector similarity search taking 8000ms",
+          "timestamp": 1714758907
+        },
+        {
+          "component_id": "embedding-service",
+          "severity": "P1",
+          "message": "Embedding service latency spike: response time 5000ms avg, CPU at 95%",
+          "timestamp": 1714758908
+        },
+        {
+          "component_id": "mcp-cache",
+          "severity": "P2",
+          "message": "MCP cache hit rate dropped: 92% -> 45% (vector cache evictions)",
+          "timestamp": 1714758909
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Circuit Breaker Engagement",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "mcp-server",
+          "severity": "P1",
+          "message": "Circuit breaker OPEN: MCP RCA generation endpoint failing - fast-failing requests",
+          "timestamp": 1714758912
+        },
+        {
+          "component_id": "rca-engine",
+          "severity": "P1",
+          "message": "RCA generation unavailable - falling back to baseline templates",
+          "timestamp": 1714758913
+        },
+        {
+          "component_id": "pattern-matching",
+          "severity": "P1",
+          "message": "Pattern matching disabled - unable to correlate related incidents",
+          "timestamp": 1714758914
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Downstream Impact - Incident Processing",
+      "duration_seconds": 4,
+      "signals": [
+        {
+          "component_id": "incident-processor",
+          "severity": "P1",
+          "message": "Incidents queued without RCA enrichment: 47 open incidents",
+          "timestamp": 1714758918
+        },
+        {
+          "component_id": "incident-indexer",
+          "severity": "P2",
+          "message": "Search index stale: incidents lacking RCA data, search accuracy degraded",
+          "timestamp": 1714758919
+        },
+        {
+          "component_id": "api-server",
+          "severity": "P2",
+          "message": "RCA endpoint responding with 503 Service Unavailable (45% of requests)",
+          "timestamp": 1714758920
+        },
+        {
+          "component_id": "ui-interface",
+          "severity": "P2",
+          "message": "Frontend experiencing timeouts when fetching incident details with RCA",
+          "timestamp": 1714758921
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "MCP Recovery - Gradual Service Restoration",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "embedding-service",
+          "severity": "P3",
+          "message": "Embedding service restarted - response time returning to baseline (150ms avg)",
+          "timestamp": 1714758924
+        },
+        {
+          "component_id": "mcp-cache",
+          "severity": "P3",
+          "message": "MCP cache rebuild initiated: loading 12,847 patterns (ETA: 45s)",
+          "timestamp": 1714758925
+        },
+        {
+          "component_id": "mcp-server",
+          "severity": "P2",
+          "message": "Circuit breaker HALF-OPEN: Testing MCP endpoint recovery",
+          "timestamp": 1714758926
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Full MCP Restoration",
+      "duration_seconds": 3,
+      "signals": [
+        {
+          "component_id": "mcp-server",
+          "severity": "P3",
+          "message": "MCP fully operational: all services responding normally",
+          "timestamp": 1714758929
+        },
+        {
+          "component_id": "rca-engine",
+          "severity": "P3",
+          "message": "RCA generation resumed - processing backlog (47 incidents queued)",
+          "timestamp": 1714758930
+        },
+        {
+          "component_id": "incident-processor",
+          "severity": "P3",
+          "message": "RCA backlog processing complete - all incidents enriched",
+          "timestamp": 1714758931
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "total_signals": 22,
+    "mcp_downtime_seconds": 7,
+    "total_recovery_time_seconds": 6,
+    "incidents_without_rca": 47,
+    "incident_pattern_count": 12847,
+    "components_affected": [
+      "mcp-server",
+      "pattern-database",
+      "embedding-service",
+      "mcp-cache",
+      "rca-engine",
+      "incident-processor",
+      "incident-indexer",
+      "api-server",
+      "ui-interface"
+    ],
+    "failure_type": "Service Degradation + Circuit Breaker",
+    "impact_scope": "RCA generation, pattern matching, incident enrichment",
+    "fallback_enabled": true
+  }
+}
